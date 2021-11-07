@@ -4,12 +4,13 @@ import javax.swing.*;
 import javax.swing.border.LineBorder;
 import java.awt.*;
 
-import static com.riccardocinti.main.Main.STATUS_JOINING;
-
 public class MainWindow extends JFrame {
 
     public static final String MAIN_WINDOW_NAME = "name";
     public static final String SNIPER_STATUS_NAME = "sniper status";
+    public static final String STATUS_JOINING = "joining";
+    public static final String STATUS_LOST = "lost";
+    public static final String STATUS_BIDDING = "bidding";
     private final JLabel sniperStatus = createLabel(STATUS_JOINING);
 
     public MainWindow() {

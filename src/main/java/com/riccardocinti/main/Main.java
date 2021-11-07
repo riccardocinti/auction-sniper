@@ -1,13 +1,16 @@
 package com.riccardocinti.main;
 
+import com.riccardocinti.auctionsniper.*;
 import org.jivesoftware.smack.Chat;
-import org.jivesoftware.smack.MessageListener;
 import org.jivesoftware.smack.XMPPConnection;
 import org.jivesoftware.smack.XMPPException;
-import org.jivesoftware.smack.packet.Message;
 
 import javax.swing.*;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.lang.reflect.InvocationTargetException;
+
+import static com.riccardocinti.main.MainWindow.*;
 
 public class Main {
 
@@ -18,12 +21,11 @@ public class Main {
 
     public static final String AUCTION_RESOURCE = "Auction";
     public static final String ITEM_ID_AS_LOGIN = "auction-%s";
-    public static final String AUCTION_ID_FORMAT =
-            ITEM_ID_AS_LOGIN + "@%s/" + AUCTION_RESOURCE;
-    public static final String STATUS_JOINING = "joining";
-    public static final String STATUS_LOST = "lost";
-    private MainWindow ui;
+    public static final String AUCTION_ID_FORMAT = ITEM_ID_AS_LOGIN + "@%s/" + AUCTION_RESOURCE;
+    public static final String BID_COMMAND_FORMAT = "SOLVersion: 1.1; COMMAND: BID; Price= %d;";
 
+
+    private MainWindow ui;
     private Chat notToBeGCd;
 
     public Main() throws Exception {
@@ -59,22 +61,43 @@ public class Main {
     }
 
     private void joinAuction(XMPPConnection connection, String itemId) throws XMPPException {
+        disconnectWhenUiCloses(connection);
+
         final Chat chat = connection.getChatManager().createChat(
-                auctionId(itemId, connection),
-                new MessageListener() {
-                    @Override
-                    public void processMessage(Chat chat, Message message) {
-                        SwingUtilities.invokeLater(new Runnable() {
-                            @Override
-                            public void run() {
-                                ui.showStatus(STATUS_LOST);
-                            }
-                        });
-                    }
-                }
-        );
+                auctionId(itemId, connection), null);
         this.notToBeGCd = chat;
-        chat.sendMessage(new Message());
+
+        Auction auction = new XMPPAuction(chat);
+        chat.addMessageListener(
+                new AuctionMessageTranslator(new AuctionSniper(auction, new SniperStateDisplayer(ui)))
+        );
+        auction.join();
     }
 
+    private void disconnectWhenUiCloses(final XMPPConnection connection) {
+        ui.addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosed(WindowEvent e) {
+                connection.disconnect();
+            }
+        });
+    }
+
+    public void sniperLost() {
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                ui.showStatus(STATUS_LOST);
+            }
+        });
+    }
+
+    public void sniperBidding() {
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                ui.showStatus(STATUS_BIDDING);
+            }
+        });
+    }
 }

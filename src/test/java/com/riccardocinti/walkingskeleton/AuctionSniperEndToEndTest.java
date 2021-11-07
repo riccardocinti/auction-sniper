@@ -1,7 +1,8 @@
 package com.riccardocinti.walkingskeleton;
 
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.Test;
+
+import org.junit.After;
+import org.junit.Test;
 
 public class AuctionSniperEndToEndTest {
 
@@ -11,19 +12,37 @@ public class AuctionSniperEndToEndTest {
     @Test
     public void sniperJoinsAuctionUntilAuctionCloses() throws Exception {
         auctionServer.startSellingItem();
-        applicationRunner.startBiddingIn(auctionServer);
-        auctionServer.hasReceivedJoinRequestFromSniper();
+
+        applicationRunner.startBiddingIn(auctionServer, "JoinCloses");
+        auctionServer.hasReceivedJoinRequestFrom(ApplicationRunner.SNIPER_XMPP_ID);
+
         auctionServer.announceClosed();
         applicationRunner.showsSniperHasLostAuction();
     }
 
-    @AfterAll
-    public static void stopAuction() {
-        auctionServer.stop();
+    @Test
+    public void sniperMakesAHigherBidButLoses() throws Exception {
+        auctionServer.startSellingItem();
+
+        applicationRunner.startBiddingIn(auctionServer, "HigherBid");
+        auctionServer.hasReceivedJoinRequestFrom(ApplicationRunner.SNIPER_XMPP_ID);
+
+        auctionServer.reportPrice(1000, 98, "other bidder");
+        applicationRunner.hasShownSniperIsBidding();
+
+        auctionServer.hasReceivedBid(1098, ApplicationRunner.SNIPER_XMPP_ID);
+
+        auctionServer.announceClosed();
+        applicationRunner.showsSniperHasLostAuction();
     }
 
-    @AfterAll
-    public static void stopApplication() {
+    @After
+    public void stopApplication() {
         applicationRunner.stop();
+    }
+
+    @After
+    public void stopAuction() {
+        auctionServer.stop();
     }
 }
